@@ -34,6 +34,47 @@ Create JUnit test cases to identify which pages in the Al Mazaya 2024 PDF contai
 ### Pages WITHOUT Tables (37 pages)
 2, 3, 4, 5, 6, 7, 13, 14, 15, 17, 18, 20, 21, 22, 23, 24, 25, 26, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 42, 47, 49, 52, 54, 55, 61
 
+## Page 7 Investigation - False Negative Analysis
+
+### Problem
+Page 7 contains a table (Consolidated Statement of Financial Position) but was NOT detected by either algorithm.
+
+### Root Cause
+**Page 7 is a scanned image, not native PDF text.**
+
+### Evidence
+```
+Page 7:  2 images, 0 chars of text  ← SCANNED IMAGE
+Page 8:  0 images, 2968 chars of text  ✓ Native PDF
+Page 9:  0 images, 1648 chars of text  ✓ Native PDF
+Page 10: 0 images, 3288 chars of text  ✓ Native PDF
+```
+
+### Image Details on Page 7
+| Image | Dimensions | Color Space | Description |
+|-------|------------|-------------|-------------|
+| Obj4 | 1240x1754 px | DeviceRGB | Color image |
+| Obj5 | 1928x3028 px | DeviceGray | Main scanned page (1-bit) |
+
+### Why Tabula Didn't Detect It
+Tabula extracts **text elements** and **ruling lines** from native PDF content. Page 7 contains:
+- **0 text elements** - Content is pixels, not text glyphs
+- **0 rulings** - Lines are part of the raster image
+
+The table exists visually but is embedded as a **raster image**, not as extractable PDF objects.
+
+### Tabula Limitation
+This is a fundamental limitation of tabula-java - it cannot process scanned/image-based PDFs without OCR preprocessing.
+
+### Solution Options
+1. **OCR the PDF first** - Use tools like Tesseract, Adobe Acrobat, or `ocrmypdf` to convert scanned images to searchable text
+2. **Re-export from source** - If you have access to the original document, export as native PDF (not scanned/printed)
+3. **Use image-based table extraction** - Libraries like `camelot` (Python) with `flavor='lattice'` can handle image-based tables
+
+### Investigation Test Files Created
+- `src/test/java/technology/tabula/TestPage7Investigation.java` - Analyzes page content
+- `src/test/java/technology/tabula/TestPage7ImageCheck.java` - Checks for embedded images
+
 ## Detection Algorithms Used
 
 ### NurminenDetectionAlgorithm
